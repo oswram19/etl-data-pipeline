@@ -1,0 +1,13 @@
+id_tipo_seguro,tipo,categoria,riesgo_base
+1,Pyme,Familiar,-
+2,Industrial,Empresarial, 4.68 
+3,Industrial,Familiar,5.10
+4,Industrial,Personal,N/A
+5,Auto,empresarial ,9.07
+6,Industrial,Empresarial,2.52
+7,Salud,Personal, 0.92 
+8,Educación,empresarial , 7.42 
+9,Accidentes,, 5.68 
+10,Dental,Especial,2.70
+11,Auto,empresarial ,4.33
+12,Agrícola,,
