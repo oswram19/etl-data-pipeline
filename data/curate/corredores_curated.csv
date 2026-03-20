@@ -1,0 +1,10 @@
+id_corredor,nombre,zona,nivel,anios_experiencia,nivel_valido,zona_valida,experiencia_valida
+1,José López Flores,Paracentral,Mid,4.0,True,True,True
+9,Carlos Torres Vásquez,Paracentral,Junior,2.0,True,True,True
+27,Carlos Mendoza Torres,Paracentral,Mid,11.0,True,True,True
+30,Carlos Cruz Martínez,Paracentral,Senior,2.0,True,True,True
+33,Karla Rojas Ramírez,Paracentral,Junior,9.0,True,True,True
+43,José Cruz Ramírez,Paracentral,Senior,14.0,True,True,True
+46,Fernanda López García,Paracentral,Mid,13.0,True,True,True
+73,Carmen Reyes Rojas,Paracentral,Senior,5.0,True,True,True
+75,Paula Vásquez Castillo,Paracentral,Mid,0.0,True,True,True
