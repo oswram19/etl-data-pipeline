@@ -40,6 +40,9 @@ class RegistrarResultadoTests(unittest.TestCase):
         with self.assertRaises(ResultadoPartidoInvalidoError):
             registrar_resultado(partido, True, 0)
 
+        with self.assertRaises(ResultadoPartidoInvalidoError):
+            registrar_resultado(partido, 0, False)
+
 
 if __name__ == "__main__":
     unittest.main()

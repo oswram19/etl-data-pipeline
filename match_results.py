@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, MutableMapping, Optional, Union
 
 
 @dataclass
@@ -12,6 +12,9 @@ class Partido:
 
 class ResultadoPartidoInvalidoError(ValueError):
     pass
+
+
+PartidoLike = Union[Partido, MutableMapping[str, Any]]
 
 
 def _validar_goles(nombre_campo: str, goles: Any) -> int:
@@ -30,17 +33,19 @@ def _validar_goles(nombre_campo: str, goles: Any) -> int:
     return goles
 
 
-def registrar_resultado(partido: Any, goles_local: Any, goles_visitante: Any) -> Any:
+def _guardar_campo(partido: PartidoLike, campo: str, valor: int | str) -> None:
+    if isinstance(partido, MutableMapping):
+        partido[campo] = valor
+        return
+
+    setattr(partido, campo, valor)
+
+
+def registrar_resultado(partido: PartidoLike, goles_local: int, goles_visitante: int) -> PartidoLike:
     goles_local_validados = _validar_goles("goles_local", goles_local)
     goles_visitante_validados = _validar_goles("goles_visitante", goles_visitante)
 
-    if isinstance(partido, dict):
-        partido["goles_local"] = goles_local_validados
-        partido["goles_visitante"] = goles_visitante_validados
-        partido["estado"] = "Jugado"
-        return partido
-
-    setattr(partido, "goles_local", goles_local_validados)
-    setattr(partido, "goles_visitante", goles_visitante_validados)
-    setattr(partido, "estado", "Jugado")
+    _guardar_campo(partido, "goles_local", goles_local_validados)
+    _guardar_campo(partido, "goles_visitante", goles_visitante_validados)
+    _guardar_campo(partido, "estado", "Jugado")
     return partido
