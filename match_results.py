@@ -33,7 +33,7 @@ def _validar_goles(nombre_campo: str, goles: Any) -> int:
     return goles
 
 
-def _guardar_campo(partido: PartidoLike, campo: str, valor: int | str) -> None:
+def _guardar_campo(partido: PartidoLike, campo: str, valor: Union[int, str]) -> None:
     if isinstance(partido, MutableMapping):
         partido[campo] = valor
         return
