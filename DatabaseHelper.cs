@@ -22,12 +22,23 @@ public sealed class Partido
 public sealed class DatabaseHelper : IDisposable
 {
     private readonly SQLiteConnection _connection;
+    private readonly object _sync = new();
+    private bool _disposed;
 
     public DatabaseHelper(string connectionString)
     {
         _connection = new SQLiteConnection(connectionString);
-        _connection.Open();
-        CrearTablaPartidos();
+
+        try
+        {
+            _connection.Open();
+            CrearTablaPartidos();
+        }
+        catch
+        {
+            _connection.Dispose();
+            throw;
+        }
     }
 
     private void CrearTablaPartidos()
@@ -47,8 +58,11 @@ public sealed class DatabaseHelper : IDisposable
                 Estado TEXT NOT NULL
             );";
 
-        using var command = new SQLiteCommand(query, _connection);
-        command.ExecuteNonQuery();
+        lock (_sync)
+        {
+            using var command = new SQLiteCommand(query, _connection);
+            command.ExecuteNonQuery();
+        }
     }
 
     public void InsertarPartido(Partido partido)
@@ -59,18 +73,23 @@ public sealed class DatabaseHelper : IDisposable
             VALUES
             (@Fecha, @HoraEste, @HoraElSalvador, @Equipo1, @Equipo2, @Grupo, @Estadio, @GolesEquipo1, @GolesEquipo2, @Estado);";
 
-        using var command = new SQLiteCommand(query, _connection);
-        command.Parameters.AddWithValue("@Fecha", partido.Fecha);
-        command.Parameters.AddWithValue("@HoraEste", partido.HoraEste);
-        command.Parameters.AddWithValue("@HoraElSalvador", partido.HoraElSalvador);
-        command.Parameters.AddWithValue("@Equipo1", partido.Equipo1);
-        command.Parameters.AddWithValue("@Equipo2", partido.Equipo2);
-        command.Parameters.AddWithValue("@Grupo", partido.Grupo);
-        command.Parameters.AddWithValue("@Estadio", partido.Estadio);
-        command.Parameters.AddWithValue("@GolesEquipo1", partido.GolesEquipo1);
-        command.Parameters.AddWithValue("@GolesEquipo2", partido.GolesEquipo2);
-        command.Parameters.AddWithValue("@Estado", partido.Estado);
-        command.ExecuteNonQuery();
+        ThrowIfDisposed();
+
+        lock (_sync)
+        {
+            using var command = new SQLiteCommand(query, _connection);
+            command.Parameters.AddWithValue("@Fecha", partido.Fecha);
+            command.Parameters.AddWithValue("@HoraEste", partido.HoraEste);
+            command.Parameters.AddWithValue("@HoraElSalvador", partido.HoraElSalvador);
+            command.Parameters.AddWithValue("@Equipo1", partido.Equipo1);
+            command.Parameters.AddWithValue("@Equipo2", partido.Equipo2);
+            command.Parameters.AddWithValue("@Grupo", partido.Grupo);
+            command.Parameters.AddWithValue("@Estadio", partido.Estadio);
+            command.Parameters.AddWithValue("@GolesEquipo1", partido.GolesEquipo1);
+            command.Parameters.AddWithValue("@GolesEquipo2", partido.GolesEquipo2);
+            command.Parameters.AddWithValue("@Estado", partido.Estado);
+            command.ExecuteNonQuery();
+        }
     }
 
     public List<Partido> ListarPartidos()
@@ -88,12 +107,17 @@ public sealed class DatabaseHelper : IDisposable
                 Estado = @Estado
             WHERE Id = @Id;";
 
-        using var command = new SQLiteCommand(query, _connection);
-        command.Parameters.AddWithValue("@Id", id);
-        command.Parameters.AddWithValue("@GolesEquipo1", golesEquipo1);
-        command.Parameters.AddWithValue("@GolesEquipo2", golesEquipo2);
-        command.Parameters.AddWithValue("@Estado", estado);
-        command.ExecuteNonQuery();
+        ThrowIfDisposed();
+
+        lock (_sync)
+        {
+            using var command = new SQLiteCommand(query, _connection);
+            command.Parameters.AddWithValue("@Id", id);
+            command.Parameters.AddWithValue("@GolesEquipo1", golesEquipo1);
+            command.Parameters.AddWithValue("@GolesEquipo2", golesEquipo2);
+            command.Parameters.AddWithValue("@Estado", estado);
+            command.ExecuteNonQuery();
+        }
     }
 
     public List<Partido> FiltrarPorGrupo(string grupo)
@@ -110,31 +134,36 @@ public sealed class DatabaseHelper : IDisposable
 
     private List<Partido> EjecutarConsulta(string query, params (string Name, object Value)[] parametros)
     {
+        ThrowIfDisposed();
+
         var partidos = new List<Partido>();
 
-        using var command = new SQLiteCommand(query, _connection);
-        foreach (var parametro in parametros)
+        lock (_sync)
         {
-            command.Parameters.AddWithValue(parametro.Name, parametro.Value);
-        }
-
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
-        {
-            partidos.Add(new Partido
+            using var command = new SQLiteCommand(query, _connection);
+            foreach (var parametro in parametros)
             {
-                Id = Convert.ToInt32(reader["Id"]),
-                Fecha = Convert.ToString(reader["Fecha"]) ?? string.Empty,
-                HoraEste = Convert.ToString(reader["HoraEste"]) ?? string.Empty,
-                HoraElSalvador = Convert.ToString(reader["HoraElSalvador"]) ?? string.Empty,
-                Equipo1 = Convert.ToString(reader["Equipo1"]) ?? string.Empty,
-                Equipo2 = Convert.ToString(reader["Equipo2"]) ?? string.Empty,
-                Grupo = Convert.ToString(reader["Grupo"]) ?? string.Empty,
-                Estadio = Convert.ToString(reader["Estadio"]) ?? string.Empty,
-                GolesEquipo1 = Convert.ToInt32(reader["GolesEquipo1"]),
-                GolesEquipo2 = Convert.ToInt32(reader["GolesEquipo2"]),
-                Estado = Convert.ToString(reader["Estado"]) ?? string.Empty
-            });
+                command.Parameters.AddWithValue(parametro.Name, parametro.Value);
+            }
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                partidos.Add(new Partido
+                {
+                    Id = Convert.ToInt32(reader["Id"]),
+                    Fecha = Convert.ToString(reader["Fecha"]) ?? string.Empty,
+                    HoraEste = Convert.ToString(reader["HoraEste"]) ?? string.Empty,
+                    HoraElSalvador = Convert.ToString(reader["HoraElSalvador"]) ?? string.Empty,
+                    Equipo1 = Convert.ToString(reader["Equipo1"]) ?? string.Empty,
+                    Equipo2 = Convert.ToString(reader["Equipo2"]) ?? string.Empty,
+                    Grupo = Convert.ToString(reader["Grupo"]) ?? string.Empty,
+                    Estadio = Convert.ToString(reader["Estadio"]) ?? string.Empty,
+                    GolesEquipo1 = Convert.ToInt32(reader["GolesEquipo1"]),
+                    GolesEquipo2 = Convert.ToInt32(reader["GolesEquipo2"]),
+                    Estado = Convert.ToString(reader["Estado"]) ?? string.Empty
+                });
+            }
         }
 
         return partidos;
@@ -142,6 +171,21 @@ public sealed class DatabaseHelper : IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         _connection.Dispose();
+        _disposed = true;
+        GC.SuppressFinalize(this);
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(DatabaseHelper));
+        }
     }
 }
